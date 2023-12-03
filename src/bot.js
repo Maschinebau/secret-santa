@@ -1,6 +1,8 @@
-require('dotenv').config()
-const { Telegraf } = require('telegraf')
-const knex = require('knex')
+import dotenv from 'dotenv'
+dotenv.config()
+import { Telegraf, Markup, Scenes, session, Composer } from 'telegraf'
+import { knex } from '../db/knexfile.js'
+import { registrationScene } from './controllers/registerScene.js'
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
@@ -8,29 +10,48 @@ const commands = `
 /start - перезапуск бота
 /help - список команд
 /register - зарегистрироваться в тайном санте
-/setPrefs - перезаписать предпочтения
-/showPlayers - список участников
+/set_prefs - перезаписать предпочтения
+/show_players - список участников
  `
 
+//  старт бота
+
 bot.start((ctx) => {
-  ctx.reply(`Привет, ${ctx.message.from.first_name ? ctx.message.from.first_name : 'Незнакомец'} . 
-Запусти команду /register, чтобы начать участвовать.
-Команда /help покажет все доступные команды.`)
+  const keyboard = Markup.keyboard([['Команды бота', 'Статус регистрации'], ['Зарегистрироваться']]).resize()
+
+  ctx.reply(
+    `Здравствуйте, ${ctx.message.from.first_name ? ctx.message.from.first_name : 'Незнакомец'} . 
+Выберите действие:`,
+    keyboard
+  )
 })
+
+// вызов подсказки
+
 bot.help((ctx) => ctx.reply(commands))
-
-bot.command('register', async (ctx) => {
-  try {
-
-    await knex('users').insert({ telegramLogin: ctx.message.from.username })
-  } catch (e) {
-    console.error(e)
-  }
-  // console.log(ctx.from)
+bot.hears('Команды бота', (ctx) => {
+  bot.help(ctx.reply(commands))
 })
+
+// регистрация
+
+const stage = new Scenes.Stage([registrationScene])
+bot.use(session())
+bot.use(stage.middleware())
+
+bot.hears(/^(Зарегистрироваться|\/register)$/i, (ctx) => ctx.scene.enter('registration'))
+
+// для неопределенного текста
+
+bot.on('text', (ctx) => {
+  const unknownTextResponse = 'Извините, я маленький, и токое не понимаю 👉🏻👈🏻';
+
+  ctx.reply(unknownTextResponse);
+});
+
+// 
 
 bot.command('test', (ctx) => {})
-
 bot.launch()
 
 // Enable graceful stop

@@ -1,47 +1,31 @@
-export const knex = require('knex')({
+import _knex from 'knex'
+
+export const knexConfig = {
   client: 'sqlite3',
   connection: {
-    filename: './data.db'
+    filename: './db/test-data.db'
   },
   useNullAsDefault: true
-})
+}
+
+export const knex = _knex(knexConfig)
 
 const createBd = async () => {
-  await knex.schema
-  .createTableIfNotExists('users', (table) => {
-    table.increments('id').primary()
-    table.string('name')
-    table.string('preferences')
-    table.string('email')
-    table.string('telegramLogin')
-    table.string('pairName')
-  })
+  const tableExists = await knex.schema.hasTable('users')
+  if (!tableExists) {
+    await knex.schema.createTable('users', (table) => {
+      table.increments('id').primary()
+      table.string('name')
+      table.string('preferences')
+      table.string('email')
+      table.string('telegramLogin')
+      table.string('pairName')
+    })
+  }
 }
 
 createBd()
 
-
-// exports.up = function (knex) {
-//   return knex.schema
-//     .createTable('users', function (table) {
-//       table.string('id').primary()
-//       table.string('name')
-//       table.string('preferences')
-//       table.string('email')
-//       table.string('telegramLogin')
-//       table.string('pairName')
-//     })
-//     .then(() => {
-//       console.log('Таблица users создана')
-//     })
-//     .finally(() => {
-//       knex.destroy()
-//     })
-// }
-
-// exports.down = function (knex) {
-//   return knex.schema.dropTableIfExists('users')
-// }
 
 class User {
   constructor(id, name, preferences, email, telegramLogin, pairName) {
@@ -60,6 +44,18 @@ class User {
 
 const user = User.deserialize()
 const resultsFromDb = []
+
+// не добавляет в бд
+;(async function insert() {
+  try {
+    await knex('users').insert({ name: 'alex', email: '2024@mail.ru' })
+    console.log('Запись успешно добавлена')
+  } catch (error) {
+    console.error(error)
+  } finally {
+    knex.destroy()
+  }
+})()
 
 // 1: /register - регистрация
 // 2: /listUsers - проверка регистрации(вывести пользователей в список)
