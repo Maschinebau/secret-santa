@@ -3,7 +3,7 @@ import { knex, checkAuth } from '../../db/knexfile.js'
 
 const setName = new Composer()
 setName.on('text', async (ctx) => {
-    if (await checkAuth(ctx.message.from.username)) {
+    if (await checkAuth(ctx.message.from.id)) {
       await ctx.reply('Вы уже зарегистрированы!')
       return ctx.scene.leave()
     } else {
@@ -31,6 +31,7 @@ registerEnd.on('text', async (ctx) => {
   try {
     ctx.wizard.state.data.preferences = ctx.message.text
     ctx.wizard.state.data.telegramLogin = ctx.message.from.username
+    ctx.wizard.state.data.telegramId = ctx.message.from.id
     await knex('users').insert(ctx.wizard.state.data)
     await ctx.reply('Вы успешно зарегистрированы!')
   } catch {

@@ -4,19 +4,17 @@ import { checkAuth, knex } from '../../db/knexfile.js'
 const getPrefs = new Composer()
 getPrefs.on('text', async (ctx) => {
   try {
-    if (await checkAuth(ctx.message.from.username)) {
-      ctx.reply(`Напишите ваши предпочтения:
+    if (await checkAuth(ctx.message.from.id)) {
+      ctx.reply(`Напишите ваши пожелания:
 Если передумали, напишите отмена.`)
       ctx.wizard.state.data = {}
       return ctx.wizard.next()
     } else {
-      ctx.reply('Зарегистрируйтесь, чтобы указать предпочтения.')
+      ctx.reply('Зарегистрируйтесь, чтобы указать пожелания.')
       return ctx.scene.leave()
     }
   } catch {
-    ctx.reply(
-      'Что-то пошло не так. Проверте, указан ли у вас username в профиле, он необходим для регистрации.'
-    )
+    ctx.reply('Что-то пошло не так.')
     return ctx.scene.leave()
   }
 })
@@ -26,14 +24,14 @@ setPrefs.on('text', async (ctx) => {
   try {
     const regex = /^отмена$/i
     if (regex.test(ctx.message.text)) {
-      ctx.reply('Смена предпочтений отменена.')
+      ctx.reply('Смена пожеланий отменена.')
       return ctx.scene.leave()
     } else {
       ctx.wizard.state.data.preferences = ctx.message.text
       await knex('users')
         .where('telegramLogin', ctx.message.from.username)
         .update({ preferences: ctx.wizard.state.data.preferences })
-      ctx.reply('Предпочтения успешно изменены.')
+      ctx.reply('Пожелания успешно изменены.')
     }
   } catch {
     ctx.reply('Что-то пошло не так.')

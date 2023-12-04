@@ -19,6 +19,7 @@ const createBd = async () => {
       table.string('preferences')
       table.string('email')
       table.string('telegramLogin')
+      table.string('telegramId')
       table.string('pairName')
     })
   }
@@ -27,13 +28,18 @@ const createBd = async () => {
 createBd()
 
 export class User {
-  constructor(id, name, preferences, email, telegramLogin, pairName) {
+  constructor(id, name, preferences, email, telegramLogin, telegramId, pairName) {
     this.id = id
     this.name = name
     this.preferences = preferences
     this.email = email
     this.telegramLogin = telegramLogin
+    this.telegramId = telegramId
     this.pairName = pairName
+  }
+
+  static deserialize({ id, name, preferences, email, telegramLogin, telegramId, pairName }) {
+    return new User(id, name, preferences, email, telegramLogin, telegramId, pairName)
   }
 
   static deserializeFromDb(dbUser) {
@@ -43,6 +49,7 @@ export class User {
       dbUser.preferences,
       dbUser.email,
       dbUser.telegramLogin,
+      dbUser.telegramId,
       dbUser.pairName
     )
   }
@@ -52,7 +59,7 @@ export class User {
 
 async function getUsersFromDb() {
   const users = await knex.select().from('users')
-  const results = users.map((dbUser) => User.deserializeFromDb(dbUser))
+  const results = users.map((dbUser) => User.deserialize(dbUser))
   return results
 }
 
@@ -73,9 +80,17 @@ const clearDatabase = async () => {
 
 // аутентификация
 
-export const checkAuth = async (username) => {
-  const existingUser = await knex('users').where('telegramLogin', username).first()
-  return !!existingUser
+export const checkAuth = async (id) => {
+  const currentUser = await knex('users').where('telegramId', id).first()
+  return !!currentUser
+}
+
+// проверка наличия пары
+
+export const checkPairExist = async (id) => {
+  const currentUser = await knex('users').where('telegramId', id).first()
+  const userPair = currentUser.pairName
+  return !!userPair
 }
 
 // 1: /register - регистрация
