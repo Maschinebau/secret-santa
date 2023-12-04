@@ -26,8 +26,7 @@ const createBd = async () => {
 
 createBd()
 
-
-class User {
+export class User {
   constructor(id, name, preferences, email, telegramLogin, pairName) {
     this.id = id
     this.name = name
@@ -37,25 +36,47 @@ class User {
     this.pairName = pairName
   }
 
-  static deserialize(id, name, preferences, email, telegramLogin, pairName) {
-    return new User((id, name, preferences, email, telegramLogin, pairName))
+  static deserializeFromDb(dbUser) {
+    return new User(
+      dbUser.id,
+      dbUser.name,
+      dbUser.preferences,
+      dbUser.email,
+      dbUser.telegramLogin,
+      dbUser.pairName
+    )
   }
 }
 
-const user = User.deserialize()
-const resultsFromDb = []
+// получим список пользователей из дб
 
-// не добавляет в бд
-;(async function insert() {
+async function getUsersFromDb() {
+  const users = await knex.select().from('users')
+  const results = users.map((dbUser) => User.deserializeFromDb(dbUser))
+  return results
+}
+
+// console.log(await getUsersFromDb())
+
+// сброс бд
+
+const clearDatabase = async () => {
   try {
-    await knex('users').insert({ name: 'alex', email: '2024@mail.ru' })
-    console.log('Запись успешно добавлена')
+    await knex('users').del()
+    console.log('База данных успешно очищена')
   } catch (error) {
-    console.error(error)
-  } finally {
-    knex.destroy()
+    console.error('Ошибка при очистке базы данных:', error)
   }
-})()
+}
+
+// clearDatabase()
+
+// аутентификация
+
+export const checkAuth = async (username) => {
+  const existingUser = await knex('users').where('telegramLogin', username).first()
+  return !!existingUser
+}
 
 // 1: /register - регистрация
 // 2: /listUsers - проверка регистрации(вывести пользователей в список)
