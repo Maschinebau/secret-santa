@@ -1,4 +1,4 @@
 .env
 .vscode
 node_modules
-db/test-data.db
+./db/test-data.db 

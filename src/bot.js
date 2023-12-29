@@ -1,10 +1,13 @@
 import dotenv from 'dotenv'
-dotenv.config()
-import { Telegraf, Markup, Scenes, session, Composer } from 'telegraf'
-import { User, checkAuth, checkPairExist, knex } from '../db/knexfile.js'
+import { Telegraf, Markup, Scenes, session } from 'telegraf'
+import { knex } from '../db/knexfile.js'
 import { registrationScene } from './controllers/registerScene.js'
 import { changePrefsScene } from './controllers/changePrefsScene.js'
+import { User } from './User.js'
+import { checkAuth, checkPairExist } from './services/UserServices.js'
+import { pairGenerator } from './controllers/pairGenerator.js'
 
+dotenv.config()
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 const commands = `
@@ -13,6 +16,7 @@ const commands = `
 /register - зарегистрироваться в тайном санте.
 /set_prefs - изменить пожелания.
 /profile_info - статус профиля.
+/get_pair - узнать пару.
  `
 
 //  старт бота
@@ -58,10 +62,10 @@ bot.hears(/^(Статус профиля|\/profile_info)$/i, async (ctx) => {
   try {
     const id = ctx.message.from.id
     if (await checkAuth(id)) {
-      const userDb = await knex('users').where('telegramId', id).first()
+      const userDb = await knex('users').where('telegram_id', id).first()
       const userInfo = User.deserializeFromDb(userDb)
-      ctx.reply(`Имя - ${userInfo.name}.
-Пожелания - ${userInfo.preferences}.
+      ctx.reply(`Имя: ${userInfo.name}.
+Пожелания: ${userInfo.preferences}.
       `)
     } else {
       ctx.reply(`Зарегистрируйтесь, чтобы смотреть профиль.`)
@@ -73,15 +77,17 @@ bot.hears(/^(Статус профиля|\/profile_info)$/i, async (ctx) => {
 
 // узнать свою пару
 
-bot.hears('Узнать мою пару', async (ctx) => {
+bot.hears(/^(\/get_pair|Узнать мою пару)$/i, async (ctx) => {
   try {
     const id = ctx.message.from.id
     if (await checkAuth(id)) {
       if (await checkPairExist(id)) {
-        const userDb = await knex('users').where('telegramId', id).first()
-        const userInfo = User.deserializeFromDb(userDb)
-        ctx.reply(`Имя пары - ${userInfo.pairName}.
-Пожелания - ${userInfo.preferences}.`)
+        const userDb = await knex('users').where('telegram_id', id).first()
+        const pairName = userDb.pair_name
+        const userPairDb = await knex('users').where('name', pairName).first()
+        const pairPreferences = userPairDb.preferences
+        ctx.reply(`Имя пары: ${userDb.pair_name}.
+Пожелания: ${pairPreferences}.`)
       } else {
         ctx.reply(`У вас ещё нет пары.`)
       }
@@ -93,17 +99,125 @@ bot.hears('Узнать мою пару', async (ctx) => {
   }
 })
 
+// обработка отмены действия
+
+bot.action('btn_1', async (ctx) => {
+  try {
+    await ctx.answerCbQuery()
+    ctx.reply(`Действие отменено.`)
+    return ctx.scene.leave()
+  } catch (e) {
+    console.log(e)
+  }
+} )
+
 // для неопределенного текста
 
 bot.on('text', (ctx) => {
   ctx.reply('Извините, я маленький, и токое не понимаю 👉🏻👈🏻')
 })
 
-//
-
-bot.command('test', (ctx) => {})
 bot.launch()
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
+
+
+
+const test = async () => {
+  const users = [
+    {
+      name: 'Саня',
+      preferences: 'Preferences1',
+      email: 'user1@example.com',
+      telegram_login: 'user1',
+      telegram_id: '123456',
+      pair_name: ''
+    },
+    {
+      name: 'Дав',
+      preferences: 'Preferences2',
+      email: 'user2@example.com',
+      telegram_login: 'user2',
+      telegram_id: '789012',
+      pair_name: ''
+    },
+    {
+      name: 'Жека',
+      preferences: 'Preferences1',
+      email: 'user1@example.com',
+      telegram_login: 'user1',
+      telegram_id: '123456',
+      pair_name: ''
+    },
+    {
+      name: 'Дрюс',
+      preferences: 'Preferences2',
+      email: 'user2@example.com',
+      telegram_login: 'user2',
+      telegram_id: '789012',
+      pair_name: ''
+    },
+    {
+      name: 'Катя',
+      preferences: 'Preferences1',
+      email: 'user1@example.com',
+      telegram_login: 'user1',
+      telegram_id: '123456',
+      pair_name: ''
+    },
+    {
+      name: 'Некит',
+      preferences: 'Preferences2',
+      email: 'user2@example.com',
+      telegram_login: 'user2',
+      telegram_id: '789012',
+      pair_name: ''
+    },
+    {
+      name: 'Настя',
+      preferences: 'Preferences2',
+      email: 'user2@example.com',
+      telegram_login: 'user2',
+      telegram_id: '789012',
+      pair_name: ''
+    },
+    {
+      name: 'Егор',
+      preferences: 'Preferences1',
+      email: 'user1@example.com',
+      telegram_login: 'user1',
+      telegram_id: '123456',
+      pair_name: ''
+    },
+    {
+      name: 'Ксюша',
+      preferences: 'Preferences2',
+      email: 'user2@example.com',
+      telegram_login: 'user2',
+      telegram_id: '789012',
+      pair_name: ''
+    },
+  ]
+
+  try {
+    const tableExists = await knex.schema.hasTable('users')
+
+    if (tableExists) {
+      for (const user of users) {
+        await knex('users').insert(user)
+      }
+
+      console.log('Пользователи успешно добавлены в базу данных!')
+    } else {
+      console.log('Таблица "users" не существует')
+    }
+  } catch (error) {
+    console.error('Ошибка при добавлении пользователей в базу данных:', error)
+  }
+}
+
+// test()
+
+// pairGenerator()

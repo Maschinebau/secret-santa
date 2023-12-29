@@ -1,12 +1,15 @@
-import { Composer, Scenes } from 'telegraf'
-import { checkAuth, knex } from '../../db/knexfile.js'
+import { Composer, Markup, Scenes } from 'telegraf'
+import { knex } from '../../db/knexfile.js'
+import { checkAuth } from '../services/UserServices.js'
 
 const getPrefs = new Composer()
 getPrefs.on('text', async (ctx) => {
   try {
     if (await checkAuth(ctx.message.from.id)) {
-      ctx.reply(`Напишите ваши пожелания:
-Если передумали, напишите отмена.`)
+      await ctx.replyWithHTML(
+        `Напишите ваши пожелания:`,
+        Markup.inlineKeyboard([[Markup.button.callback('Отмена', 'btn_1')]])
+      )
       ctx.wizard.state.data = {}
       return ctx.wizard.next()
     } else {
@@ -29,7 +32,7 @@ setPrefs.on('text', async (ctx) => {
     } else {
       ctx.wizard.state.data.preferences = ctx.message.text
       await knex('users')
-        .where('telegramLogin', ctx.message.from.username)
+        .where('telegram_login', ctx.message.from.username)
         .update({ preferences: ctx.wizard.state.data.preferences })
       ctx.reply('Пожелания успешно изменены.')
     }
