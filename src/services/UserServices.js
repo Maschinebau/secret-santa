@@ -1,40 +1,45 @@
-import { knex } from '../../db/knexfile.js'
 import { User } from '../User.js'
+import { db } from '../../db/db.js'
 
-// аутентификация
+class UserService {
+  constructor(database) {
+    this.database = database
+  }
 
-export const checkAuth = async (id) => {
-  const currentUser = await knex('users').where('telegram_id', id).first()
-  return !!currentUser
-}
+  async checkAuth(id) {
+    const currentUser = await this.database('users').where('telegram_id', id).first()
+    return !!currentUser
+  }
 
-// проверка наличия пары
+  async checkPairExist(id) {
+    const currentUser = await this.database('users').where('telegram_id', id).first()
+    const userPair = currentUser.pair_name
+    return !!userPair
+  }
 
-export const checkPairExist = async (id) => {
-  const currentUser = await knex('users').where('telegram_id', id).first()
-  const userPair = currentUser.pair_name
-  return !!userPair
-}
+  async getUsersFromDb() {
+    const users = await database.select().from('users')
+    const results = users.map((dbUser) => User.deserialize(dbUser))
+    return results
+  }
 
-// получим список пользователей из дб
+  async saveUserOnRegistration(userData) {
+    await this.database('users').insert(userData)
+  }
 
-async function getUsersFromDb() {
-  const users = await knex.select().from('users')
-  const results = users.map((dbUser) => User.deserialize(dbUser))
-  return results
-}
+  async changeUserPrefs(username, prefs, ctx) {
+    this.database('users').where('telegram_login', username).update({ preferences: prefs })
+    ctx.reply('Пожелания успешно изменены.')
+  }
 
-// console.log(await getUsersFromDb())
-
-// сброс бд
-
-const clearDatabase = async () => {
-  try {
-    await knex('users').del()
-    console.log('База данных успешно очищена')
-  } catch (error) {
-    console.error('Ошибка при очистке базы данных:', error)
+  async clearDatabase() {
+    try {
+      await this.database('users').del()
+      console.log('База данных успешно очищена')
+    } catch (error) {
+      console.error('Ошибка при очистке базы данных:', error)
+    }
   }
 }
 
-// clearDatabase()
+export const userServiceInst = new UserService(db)

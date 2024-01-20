@@ -1,11 +1,11 @@
 import dotenv from 'dotenv'
 import { Telegraf, Markup, Scenes, session } from 'telegraf'
-import { knex } from '../db/knexfile.js'
 import { registrationScene } from './controllers/registerScene.js'
 import { changePrefsScene } from './controllers/changePrefsScene.js'
 import { User } from './User.js'
-import { checkAuth, checkPairExist } from './services/UserServices.js'
+import { userServiceInst } from './services/UserServices.js'
 import { pairGenerator } from './controllers/pairGenerator.js'
+import { db } from '../db/db.js'
 
 dotenv.config()
 const bot = new Telegraf(process.env.BOT_TOKEN)
@@ -61,8 +61,8 @@ bot.hears(/^(Изменить|\/set_prefs)\sпожелания$/i, (ctx) => ctx.
 bot.hears(/^(Статус профиля|\/profile_info)$/i, async (ctx) => {
   try {
     const id = ctx.message.from.id
-    if (await checkAuth(id)) {
-      const userDb = await knex('users').where('telegram_id', id).first()
+    if (await userServiceInst.checkAuth(id)) {
+      const userDb = await db('users').where('telegram_id', id).first()
       const userInfo = User.deserializeFromDb(userDb)
       ctx.reply(`Имя: ${userInfo.name}.
 Пожелания: ${userInfo.preferences}.
@@ -80,11 +80,11 @@ bot.hears(/^(Статус профиля|\/profile_info)$/i, async (ctx) => {
 bot.hears(/^(\/get_pair|Узнать мою пару)$/i, async (ctx) => {
   try {
     const id = ctx.message.from.id
-    if (await checkAuth(id)) {
-      if (await checkPairExist(id)) {
-        const userDb = await knex('users').where('telegram_id', id).first()
+    if (await userServiceInst.checkAuth(id)) {
+      if (await userServiceInst.checkPairExist(id)) {
+        const userDb = await db('users').where('telegram_id', id).first()
         const pairName = userDb.pair_name
-        const userPairDb = await knex('users').where('name', pairName).first()
+        const userPairDb = await db('users').where('name', pairName).first()
         const pairPreferences = userPairDb.preferences
         ctx.reply(`Имя пары: ${userDb.pair_name}.
 Пожелания: ${pairPreferences}.`)
@@ -109,7 +109,7 @@ bot.action('btn_1', async (ctx) => {
   } catch (e) {
     console.log(e)
   }
-} )
+})
 
 // для неопределенного текста
 
@@ -122,8 +122,6 @@ bot.launch()
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
-
-
 
 const test = async () => {
   const users = [
@@ -198,15 +196,15 @@ const test = async () => {
       telegram_login: 'user2',
       telegram_id: '789012',
       pair_name: ''
-    },
+    }
   ]
 
   try {
-    const tableExists = await knex.schema.hasTable('users')
+    const tableExists = await db.schema.hasTable('users')
 
     if (tableExists) {
       for (const user of users) {
-        await knex('users').insert(user)
+        await db('users').insert(user)
       }
 
       console.log('Пользователи успешно добавлены в базу данных!')
@@ -221,3 +219,5 @@ const test = async () => {
 // test()
 
 // pairGenerator()
+
+// clearDatabase()

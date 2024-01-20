@@ -6,8 +6,8 @@
   "main": "src/bot.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "db:migrate": "knex migrate:latest --knexfile ./db/knexfile.js",
-    "dev": "nodemon ."
+    "dev": "nodemon .",
+    "migrate": "npx knex migrate:latest --knexfile ./db/knexfile.js"
   },
   "keywords": [],
   "author": "",
