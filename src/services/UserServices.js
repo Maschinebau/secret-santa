@@ -42,4 +42,4 @@ class UserService {
   }
 }
 
-export const userServiceInst = new UserService(db)
+export const userServiceInst = new UserService(db.knex)

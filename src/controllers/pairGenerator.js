@@ -1,9 +1,9 @@
 import { db } from '../../db/db.js'
 
 export const pairGenerator = async () => {
-  const tableExists = await db.schema.hasTable('users')
+  const tableExists = await db.knex.schema.hasTable('users')
   if (tableExists) {
-    const users = await db('users').select('id', 'name')
+    const users = await db.knex('users').select('id', 'name')
     if (users.length < 2) {
       throw new Error('Недостаточно пользователей для формирования пар')
     }
@@ -22,7 +22,7 @@ export const pairGenerator = async () => {
       }
       currentUser.pair_name = nextUser.name
       pairs[nextUser.name] = true
-      await db('users').where('id', currentUser.id).update('pair_name', nextUser.name)
+      await db.knex.knex('users').where('id', currentUser.id).update('pair_name', nextUser.name)
     }
     console.log('Пары пользователей успешно сгенерированы!')
   } else {

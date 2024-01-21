@@ -4,7 +4,6 @@ import { registrationScene } from './controllers/registerScene.js'
 import { changePrefsScene } from './controllers/changePrefsScene.js'
 import { User } from './User.js'
 import { userServiceInst } from './services/UserServices.js'
-import { pairGenerator } from './controllers/pairGenerator.js'
 import { db } from '../db/db.js'
 
 dotenv.config()
@@ -62,7 +61,7 @@ bot.hears(/^(Статус профиля|\/profile_info)$/i, async (ctx) => {
   try {
     const id = ctx.message.from.id
     if (await userServiceInst.checkAuth(id)) {
-      const userDb = await db('users').where('telegram_id', id).first()
+      const userDb = await db.knex('users').where('telegram_id', id).first()
       const userInfo = User.deserializeFromDb(userDb)
       ctx.reply(`Имя: ${userInfo.name}.
 Пожелания: ${userInfo.preferences}.
@@ -82,9 +81,9 @@ bot.hears(/^(\/get_pair|Узнать мою пару)$/i, async (ctx) => {
     const id = ctx.message.from.id
     if (await userServiceInst.checkAuth(id)) {
       if (await userServiceInst.checkPairExist(id)) {
-        const userDb = await db('users').where('telegram_id', id).first()
+        const userDb = await db.knex('users').where('telegram_id', id).first()
         const pairName = userDb.pair_name
-        const userPairDb = await db('users').where('name', pairName).first()
+        const userPairDb = await db.knex('users').where('name', pairName).first()
         const pairPreferences = userPairDb.preferences
         ctx.reply(`Имя пары: ${userDb.pair_name}.
 Пожелания: ${pairPreferences}.`)
@@ -121,103 +120,7 @@ bot.launch()
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
-process.once('SIGTERM', () => bot.stop('SIGTERM'))
-
-const test = async () => {
-  const users = [
-    {
-      name: 'Саня',
-      preferences: 'Preferences1',
-      email: 'user1@example.com',
-      telegram_login: 'user1',
-      telegram_id: '123456',
-      pair_name: ''
-    },
-    {
-      name: 'Дав',
-      preferences: 'Preferences2',
-      email: 'user2@example.com',
-      telegram_login: 'user2',
-      telegram_id: '789012',
-      pair_name: ''
-    },
-    {
-      name: 'Жека',
-      preferences: 'Preferences1',
-      email: 'user1@example.com',
-      telegram_login: 'user1',
-      telegram_id: '123456',
-      pair_name: ''
-    },
-    {
-      name: 'Дрюс',
-      preferences: 'Preferences2',
-      email: 'user2@example.com',
-      telegram_login: 'user2',
-      telegram_id: '789012',
-      pair_name: ''
-    },
-    {
-      name: 'Катя',
-      preferences: 'Preferences1',
-      email: 'user1@example.com',
-      telegram_login: 'user1',
-      telegram_id: '123456',
-      pair_name: ''
-    },
-    {
-      name: 'Некит',
-      preferences: 'Preferences2',
-      email: 'user2@example.com',
-      telegram_login: 'user2',
-      telegram_id: '789012',
-      pair_name: ''
-    },
-    {
-      name: 'Настя',
-      preferences: 'Preferences2',
-      email: 'user2@example.com',
-      telegram_login: 'user2',
-      telegram_id: '789012',
-      pair_name: ''
-    },
-    {
-      name: 'Егор',
-      preferences: 'Preferences1',
-      email: 'user1@example.com',
-      telegram_login: 'user1',
-      telegram_id: '123456',
-      pair_name: ''
-    },
-    {
-      name: 'Ксюша',
-      preferences: 'Preferences2',
-      email: 'user2@example.com',
-      telegram_login: 'user2',
-      telegram_id: '789012',
-      pair_name: ''
-    }
-  ]
-
-  try {
-    const tableExists = await db.schema.hasTable('users')
-
-    if (tableExists) {
-      for (const user of users) {
-        await db('users').insert(user)
-      }
-
-      console.log('Пользователи успешно добавлены в базу данных!')
-    } else {
-      console.log('Таблица "users" не существует')
-    }
-  } catch (error) {
-    console.error('Ошибка при добавлении пользователей в базу данных:', error)
-  }
-}
-
-// test()
-
-// pairGenerator()
-
-// clearDatabase()
+process.once('SIGTERM', () => {
+  db.closeConnection()
+  bot.stop('SIGTERM')
+})
