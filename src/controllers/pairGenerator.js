@@ -22,7 +22,7 @@ export const pairGenerator = async () => {
       }
       currentUser.pair_name = nextUser.name
       pairs[nextUser.name] = true
-      await db.knex.knex('users').where('id', currentUser.id).update('pair_name', nextUser.name)
+      await db.knex('users').where('id', currentUser.id).update('pair_name', nextUser.name)
     }
     console.log('Пары пользователей успешно сгенерированы!')
   } else {
